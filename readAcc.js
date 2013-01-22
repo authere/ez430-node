@@ -18,37 +18,34 @@ var sp = new SerialPort(deviceName, {
   baudRate: 115200,
 });
 
-console.log("start ap..", startAccessPoint);
-sp.write(startAccessPoint);
+sp.on("open", function () {
+  console.log("start ap..", startAccessPoint);
+  sp.write(startAccessPoint);
 
-function requestData() {
-  //console.log("writing..", accDataRequest);
   sp.write(accDataRequest);
-}
 
-setTimeout(requestData, 100);
-
-sp.on("data", function (data) {
-  var x, y, z, on;
-  var buf = new Buffer(data);
-  if (data.length >= 7) {
-    x = buf.readInt8(5);
-    y = buf.readInt8(4);
-    z = buf.readInt8(6);
-    on = (buf[3] === 1);
-    if (on) {
-      console.log("x:" + x + " y:" + y + " z:" + z);
+  sp.on("data", function (data) {
+    var x, y, z, on;
+    var buf = new Buffer(data);
+    if (data.length >= 7) {
+      x = buf.readInt8(5);
+      y = buf.readInt8(4);
+      z = buf.readInt8(6);
+      on = (buf[3] === 1);
+      if (on) {
+        console.log("x:" + x + " y:" + y + " z:" + z);
+      }
     }
-  }
-  requestData();
-});
+    sp.write(accDataRequest);
+  });
 
-sp.on('close', function (err) {
-  console.log('port closed');
-});
+  sp.on('close', function (err) {
+    console.log('port closed');
+  });
 
-sp.on('error', function (err) {
-  console.error("error", err);
+  sp.on('error', function (err) {
+    console.error("error", err);
+  });
 });
 
 process.on('uncaughtException', function (err) {
