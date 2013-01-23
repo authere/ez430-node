@@ -10,6 +10,7 @@
         "node": "0.8.x"
     },
     "dependencies": {
-        "serialport": "*"
+        "serialport": "1.0.x",
+        "log4js": "0.5.x"
     }
 }
