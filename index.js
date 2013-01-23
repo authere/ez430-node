@@ -3,6 +3,7 @@
 var serialport = require('serialport'),
   SerialPort = serialport.SerialPort, // localize object constructor
   events = require('events'),
+  fs = require('fs'),
   util = require('util'),
   logger = require('log4js').getLogger('ez430'),
   osType = require('os').type(); 
@@ -10,15 +11,15 @@ var serialport = require('serialport'),
 var startAccessPoint = new Buffer([0xff, 0x7, 0x03]),
   stopAccessPoint = new Buffer([0xff, 0x9, 0x03]),
   accDataRequest = new Buffer([0xFF, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00]),
-  deviceName;
+  devicePath;
 
 var FREE_FALL_THRESHOLD = 90,
   FREE_FALL_IGNORE_DURATION = 3000; //in ms
 
 if (osType === 'Linux') {
-  deviceName = '/dev/ttyACM0';
+  devicePath = '/dev/ttyACM0';
 } else if (osType === 'Darwin') {
-  deviceName = '/dev/tty.usbmodem001';
+  devicePath = '/dev/tty.usbmodem001';
 }
 
 /*
@@ -35,7 +36,12 @@ function Accelerometer(options) {
   options = options || {};
   events.EventEmitter.call(this);
 
-  sp = new SerialPort(deviceName, {
+  try {
+    fs.statSync(devicePath);
+  } catch (e) {
+    throw new Error('device not found');
+  }
+  sp = new SerialPort(devicePath, {
     baudRate: 115200,
   });
 
@@ -70,7 +76,7 @@ function Accelerometer(options) {
           }
         }
       } else {
-        logger.debug((new Date()).getTime() + ' invalid data', buf);
+        //logger.debug((new Date()).getTime() + ' invalid data', buf);
       }
       sp.write(accDataRequest);
     });
