@@ -17,7 +17,7 @@ var FREE_FALL_THRESHOLD = 90,
   FREE_FALL_IGNORE_DURATION = 3000; //in ms
 
 if (osType === 'Linux') {
-  devicePath = '/dev/ttyACM0';
+  devicePath = '/dev/ttyACM1'; // temp fix
 } else if (osType === 'Darwin') {
   devicePath = '/dev/tty.usbmodem001';
 }
