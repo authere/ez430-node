@@ -2,8 +2,7 @@
     "name": "ez430-node",
     "description": "ez430 on node.js",
     "scripts": {
-        "test": "mocha --reporter spec --bail",
-        "start": "readAcc.js"
+        "start": "index.js"
     },
     "version": "0.0.0-1",
     "engines": {
