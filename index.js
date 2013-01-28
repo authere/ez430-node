@@ -13,7 +13,8 @@ var startAccessPoint = new Buffer([0xff, 0x7, 0x03]),
   accDataRequest = new Buffer([0xFF, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00]),
   devicePath;
 
-var FREE_FALL_THRESHOLD = 90,
+var POLL_INTERVAL = 5000,
+  FREE_FALL_THRESHOLD = 90,
   FREE_FALL_IGNORE_DURATION = 3000; //in ms
 
 if (osType === 'Linux') {
@@ -30,7 +31,6 @@ t = Math.sqrt(2*h/g);
 */
 function Accelerometer(options) {
   var sp,
-    prevFreeFallAt = 0,
     self = this;
 
   options = options || {};
@@ -57,28 +57,36 @@ function Accelerometer(options) {
 
     sp.on('data', function (data) {
       var x, y, z, on,
+        timeout = 0,
         buf = new Buffer(data);
       if (data.length >= 7) {
         x = buf.readInt8(5);
         y = buf.readInt8(4);
         z = buf.readInt8(6);
         on = (buf[3] === 1);
-        if (on && options.freeFallDetection) {
+        if (on) {
+          if (options.freeFallDetection) {
           //logger.debug('x:' + x + ' y:' + y + ' z:' + z);
-          if (Math.abs(x) > FREE_FALL_THRESHOLD && Math.abs(y) > FREE_FALL_THRESHOLD && 
-            Math.abs(z) > FREE_FALL_THRESHOLD) {
-            var now = (new Date()).getTime();
-            if ((now - prevFreeFallAt) > FREE_FALL_IGNORE_DURATION) {
-              logger.debug('freefall: ' + now + ' x:' + x + ' y:' + y + ' z:' + z);
-              self.emit('freefall');
-              prevFreeFallAt = now;
+            if (Math.abs(x) > FREE_FALL_THRESHOLD && Math.abs(y) > FREE_FALL_THRESHOLD && 
+              Math.abs(z) > FREE_FALL_THRESHOLD) {
+                logger.debug('freefall: ' + ' x:' + x + ' y:' + y + ' z:' + z);
+                self.emit('freefall');
+                timeout = FREE_FALL_IGNORE_DURATION;
+            } else {
+              timeout = 0;
             }
           }
+        } else {
+          timeout = POLL_INTERVAL;
         }
       } else {
         //logger.debug((new Date()).getTime() + ' invalid data', buf);
       }
-      sp.write(accDataRequest);
+      if (timeout > 0) {
+        setTimeout(function () {sp.write(accDataRequest);}, timeout);
+      } else {
+        sp.write(accDataRequest);
+      }
     });
     sp.on('close', function (err) {
       logger.info('port closed');
