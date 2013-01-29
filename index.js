@@ -13,9 +13,12 @@ var startAccessPoint = new Buffer([0xff, 0x7, 0x03]),
   accDataRequest = new Buffer([0xFF, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00]),
   devicePath;
 
-var POLL_INTERVAL = 5000,
+var MAX_OFF_TIMES = 200,
+  POLL_INTERVAL = 5000,
   FREE_FALL_THRESHOLD = 90,
   FREE_FALL_IGNORE_DURATION = 3000; //in ms
+
+var off_times = 0;
 
 if (osType === 'Linux') {
   devicePath = '/dev/ttyACM1'; // temp fix
@@ -65,28 +68,27 @@ function Accelerometer(options) {
         z = buf.readInt8(6);
         on = (buf[3] === 1);
         if (on) {
+          off_times = 0;
           if (options.freeFallDetection) {
-          //logger.debug('x:' + x + ' y:' + y + ' z:' + z);
+            //console.log('x:' + x + ' y:' + y + ' z:' + z);
             if (Math.abs(x) > FREE_FALL_THRESHOLD && Math.abs(y) > FREE_FALL_THRESHOLD && 
               Math.abs(z) > FREE_FALL_THRESHOLD) {
-                logger.debug('freefall: ' + ' x:' + x + ' y:' + y + ' z:' + z);
-                self.emit('freefall');
-                timeout = FREE_FALL_IGNORE_DURATION;
-            } else {
-              timeout = 0;
-            }
+              logger.info('freefall: ' + ' x:' + x + ' y:' + y + ' z:' + z);
+              self.emit('freefall');
+            } 
           }
         } else {
-          timeout = POLL_INTERVAL;
+          off_times++;
         }
       } else {
+        off_times++;
         //logger.debug((new Date()).getTime() + ' invalid data', buf);
       }
-      if (timeout > 0) {
-        setTimeout(function () {sp.write(accDataRequest);}, timeout);
-      } else {
-        sp.write(accDataRequest);
-      }
+      if (off_times > MAX_OFF_TIMES) {
+        off_times = 0;
+        timeout = POLL_INTERVAL;
+      } 
+      setTimeout(function () {sp.write(accDataRequest); }, timeout);
     });
     sp.on('close', function (err) {
       logger.info('port closed');
